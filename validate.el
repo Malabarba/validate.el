@@ -21,7 +21,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-
+;;
 ;; This library offers two functions that perform schema validation.
 ;; Use this is your Elisp packages to provide very informative error
 ;; messages when your users accidentally misconfigure a variable.
@@ -46,6 +46,10 @@
 ;; custom variable matches its custom-type, while `validate-value' checks an
 ;; arbitrary value against an arbitrary schema.
 
+;;; Todo:
+;;
+;; :inline, `plist',`coding-system',`color',`hook',`restricted-sexp'.
+
 ;;; Code:
 (require 'cl-lib)
 (require 'seq)
@@ -68,7 +72,7 @@ If they don't match, return an explanation."
     (setq args (or (plist-get props :args)
                    args))
     (let ((r
-           (cl-labels ((wtype ;wrong-type
+           (cl-labels ((wtype           ;wrong-type
                         (tt) (unless (funcall (intern (format "%sp" tt)) value)
                                (format "not a %s" tt))))
              ;; TODO: hook (top-level only).
