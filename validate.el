@@ -4,6 +4,8 @@
 
 ;; Author: Artur Malabarba <emacs@endlessparentheses.com>
 ;; Keywords: lisp
+;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
+;; Version: 0.1
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -20,9 +22,34 @@
 
 ;;; Commentary:
 
+;; This library offers two functions that perform schema validation.
+;; Use this is your Elisp packages to provide very informative error
+;; messages when your users accidentally misconfigure a variable.
+;; For instance, if everything is fine, these do the same thing:
 ;;
+;;   1.  (validate-variable 'cider-known-endpoints)
+;;   2.  cider-known-endpoints
+;;
+;; However, if the user has misconfigured this variable, option
+;; 1. will immediately give them an informative error message, while
+;; option 2. won't say anything and will lead to confusing errors down
+;; the line.
+;;
+;; The format and language of the schemas is the same one used in the
+;; `:type' property of a `defcustom'.
+;;
+;;     See: (info "(elisp) Customization Types")
+;;
+;; Both functions throw a `user-error' if the value in question
+;; doesn't match the schema, and return the value itself if it
+;; matches.  The function `validate-variable' verifies whether the value of a
+;; custom variable matches its custom-type, while `validate-value' checks an
+;; arbitrary value against an arbitrary schema.
 
 ;;; Code:
+(require 'cl-lib)
+(require 'seq)
+(require 'cus-edit)
 
 (defun validate--check-list-contents (values schemas)
   "Check that all VALUES match all SCHEMAS."
@@ -33,8 +60,7 @@
 (defun validate--check (value schema)
   "Return nil if VALUE matches SCHEMA.
 If they don't match, return an explanation."
-  (let ((fail (list schema value))
-        (args (cdr-safe schema))
+  (let ((args (cdr-safe schema))
         (expected-type (or (car-safe schema) schema))
         (props nil))
     (while (and (keywordp (car args)) (cdr args))
@@ -43,8 +69,8 @@ If they don't match, return an explanation."
                    args))
     (let ((r
            (cl-labels ((wtype ;wrong-type
-                        (t) (unless (funcall (intern (format "%sp" t)) value)
-                              (format "not a %s" t))))
+                        (tt) (unless (funcall (intern (format "%sp" tt)) value)
+                               (format "not a %s" tt))))
              ;; TODO: hook (top-level only).
              (cl-case expected-type
                ((sexp other) nil)
@@ -52,7 +78,7 @@ If they don't match, return an explanation."
                                ((not (boundp value)) "this symbol has no variable binding")))
                ((integer number float string character symbol function boolean face)
                 (wtype expected-type))
-               (regexp (cond ((ignore-errors (string-match re "") t) nil)
+               (regexp (cond ((ignore-errors (string-match value "") t) nil)
                              ((wtype 'string))
                              (t "not a valid regexp")))
                (repeat (cond
@@ -90,7 +116,7 @@ If they don't match, return an explanation."
                               (t (validate--check value
                                           `(repeat (cons ,key-type ,value-type)))))))
                ;; TODO: `plist'
-               ((choice radio) (if (not (cdr choice))
+               ((choice radio) (if (not (cdr args))
                                    (error "`choice' needs at least one argument")
                                  (let ((gather (mapcar (lambda (x) (validate--check value x)) args)))
                                    (when (seq-every-p #'identity gather)
