@@ -7,19 +7,6 @@
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 ;; Version: 0.1
 
-;; This program is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation, either version 3 of the License, or
-;; (at your option) any later version.
-
-;; This program is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-
-;; You should have received a copy of the GNU General Public License
-;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 ;;; Commentary:
 ;;
 ;; This library offers two functions that perform schema validation.
@@ -45,10 +32,26 @@
 ;; matches.  The function `validate-variable' verifies whether the value of a
 ;; custom variable matches its custom-type, while `validate-value' checks an
 ;; arbitrary value against an arbitrary schema.
-
-;;; Todo:
 ;;
-;; :inline, `plist',`coding-system',`color',`hook',`restricted-sexp'.
+;; Missing features: `:inline', `plist', `coding-system', `color',
+;; `hook', `restricted-sexp'.
+
+;;; License:
+;;
+;; This file is part of GNU Emacs.
+;;
+;; GNU Emacs is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; GNU Emacs is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Code:
 (require 'cl-lib)
