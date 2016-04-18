@@ -1,0 +1,146 @@
+;;; validate.el --- Schema validation for Emacs-lisp  -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2016  Artur Malabarba
+
+;; Author: Artur Malabarba <emacs@endlessparentheses.com>
+;; Keywords: lisp
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;;
+
+;;; Code:
+
+(defun validate--check-list-contents (values schemas)
+  "Check that all VALUES match all SCHEMAS."
+  (if (not (= (length values) (length schemas)))
+      "wrong number of elements"
+    (seq-find #'identity (seq-mapn #'validate--check values schemas))))
+
+(defun validate--check (value schema)
+  "Return nil if VALUE matches SCHEMA.
+If they don't match, return an explanation."
+  (let ((fail (list schema value))
+        (args (cdr-safe schema))
+        (expected-type (or (car-safe schema) schema))
+        (props nil))
+    (while (and (keywordp (car args)) (cdr args))
+      (setq props `(,(pop args) ,(pop args) ,@props)))
+    (setq args (or (plist-get props :args)
+                   args))
+    (let ((r
+           (cl-labels ((wtype ;wrong-type
+                        (t) (unless (funcall (intern (format "%sp" t)) value)
+                              (format "not a %s" t))))
+             ;; TODO: hook (top-level only).
+             (cl-case expected-type
+               ((sexp other) nil)
+               (variable (cond ((wtype 'symbol))
+                               ((not (boundp value)) "this symbol has no variable binding")))
+               ((integer number float string character symbol function boolean face)
+                (wtype expected-type))
+               (regexp (cond ((ignore-errors (string-match re "") t) nil)
+                             ((wtype 'string))
+                             (t "not a valid regexp")))
+               (repeat (cond
+                        ((or (not args) (cdr args)) (error "`repeat' needs exactly one argument"))
+                        ((wtype 'list))
+                        (t (let ((subschema (car args)))
+                             (seq-some (lambda (v) (validate--check v subschema)) value)))))
+               ((const function-item variable-item) (unless (eq value (car args))
+                                                      "not the expected value"))
+               (file (cond ((wtype 'string))
+                           ((file-exists-p value) nil)
+                           ((plist-get props :must-match) "file does not exist")
+                           ((not (file-writable-p value)) "file is not accessible")))
+               (directory (cond ((wtype 'string))
+                                ((file-directory-p value) nil)
+                                ((file-exists-p value) "path is not a directory")
+                                ((not (file-writable-p value)) "directory is not accessible")))
+               (key-sequence (and (wtype 'string)
+                                  (wtype 'vector)))
+               ;; TODO: `coding-system', `color'
+               (coding-system (wtype 'symbol))
+               (color (wtype 'string))
+               (cons (or (wtype 'cons)
+                         (validate--check (car value) (car args))
+                         (validate--check (cdr value) (cadr args))))
+               ((list group) (or (wtype 'list)
+                                 (validate--check-list-contents value args)))
+               (vector (or (wtype 'vector)
+                           (validate--check-list-contents value args)))
+               (alist (let ((value-type (plist-get props :value-type))
+                            (key-type (plist-get props :key-type)))
+                        (cond ((not value-type) (error "`alist' needs a :value-type"))
+                              ((not key-type) (error "`alist' needs a :key-type"))
+                              ((wtype 'list))
+                              (t (validate--check value
+                                          `(repeat (cons ,key-type ,value-type)))))))
+               ;; TODO: `plist'
+               ((choice radio) (if (not (cdr choice))
+                                   (error "`choice' needs at least one argument")
+                                 (let ((gather (mapcar (lambda (x) (validate--check value x)) args)))
+                                   (when (seq-every-p #'identity gather)
+                                     (concat "all of the options failed\n  "
+                                             (mapconcat #'identity gather "\n  "))))))
+               ;; TODO: `restricted-sexp'
+               (set (or (wtype 'list)
+                        (let ((failed (list t)))
+                          (dolist (schema args)
+                            (let ((elem (seq-find (lambda (x) (not (validate--check x schema)))
+                                                value
+                                                failed)))
+                              (unless (eq elem failed)
+                                (setq value (remove elem value)))))
+                          (when value
+                            (concat "the following values don't match any of the options:\n  "
+                                    (mapconcat (lambda (x) (format "%s" x)) value "\n  "))))))))))
+      (when r
+        (let ((print-length 4)
+              (print-level 2))
+          (format "Looking for `%S' in `%S' failed because:\n%s"
+                  schema value r))))))
+
+
+;;; Exposed API
+;;;###autoload
+(defun validate-value (value schema &optional noerror)
+  "Check that VALUE matches SCHEMA.
+If it matches return VALUE, otherwise signal a `user-error'.
+
+If NOERROR is non-nil, return t to indicate a match and nil to
+indicate a failure."
+  (let ((report (validate--check value schema)))
+    (if report
+        (unless noerror
+          (user-error report))
+      value)))
+
+;;;###autoload
+(defun validate-variable (symbol &optional noerror)
+  "Check that SYMBOL's value matches its schema.
+SYMBOL must be the name of a custom option with a defined
+`custom-type'. If SYMBOL has a value and a type, they are checked
+with `validate-value'. NOERROR is passed to `validate-value'."
+  (let* ((val (symbol-value symbol))
+         (type (custom-variable-type symbol)))
+    (if type
+        (validate-value val type)
+      (if noerror val
+        (error "Variable `%s' has no custom-type." symbol)))))
+
+(provide 'validate)
+;;; validate.el ends here
