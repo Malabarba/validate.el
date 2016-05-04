@@ -175,5 +175,12 @@ with `validate-value'. NOERROR is passed to `validate-value'."
       (if noerror val
         (error "Variable `%s' has no custom-type." symbol)))))
 
+;;;###autoload
+(defun validate-mark-safe-local (symbol)
+  "Mark SYMBOL as a safe local if its custom type is obeyed."
+  (put symbol 'safe-local-variable
+       (lambda (val)
+         (validate-value val (custom-variable-type symbol) 'noerror))))
+
 (provide 'validate)
 ;;; validate.el ends here
