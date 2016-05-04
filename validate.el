@@ -1,11 +1,11 @@
 ;;; validate.el --- Schema validation for Emacs-lisp  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2016  Artur Malabarba
+;; Copyright (C) 2016  Free Software Foundation, Inc.
 
 ;; Author: Artur Malabarba <emacs@endlessparentheses.com>
 ;; Keywords: lisp
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
-;; Version: 0.1
+;; Version: 0.2
 
 ;;; Commentary:
 ;;
