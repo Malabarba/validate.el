@@ -5,7 +5,7 @@
 ;; Author: Artur Malabarba <emacs@endlessparentheses.com>
 ;; Keywords: lisp
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
-;; Version: 0.2
+;; Version: 0.3
 
 ;;; Commentary:
 ;;
@@ -181,6 +181,11 @@ with `validate-value'. NOERROR is passed to `validate-value'."
   (put symbol 'safe-local-variable
        (lambda (val)
          (validate-value val (custom-variable-type symbol) 'noerror))))
+
+(defmacro validate-setq (symbol value)
+  "Like `setq', but throw an error if validation fails.
+VALUE is validated against SYMBOL's custom type."
+  `(setq ,symbol (validate-value ,value (custom-variable-type ',symbol))))
 
 (provide 'validate)
 ;;; validate.el ends here
