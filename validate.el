@@ -64,6 +64,9 @@
       "wrong number of elements"
     (seq-find #'identity (seq-mapn #'validate--check values schemas))))
 
+(defun validate--indent-by-2 (x)
+  (replace-regexp-in-string "^" "  " x))
+
 (defun validate--check (value schema)
   "Return nil if VALUE matches SCHEMA.
 If they don't match, return an explanation."
@@ -127,8 +130,8 @@ If they don't match, return an explanation."
                                    (error "`choice' needs at least one argument")
                                  (let ((gather (mapcar (lambda (x) (validate--check value x)) args)))
                                    (when (seq-every-p #'identity gather)
-                                     (concat "all of the options failed\n  "
-                                             (mapconcat #'identity gather "\n  "))))))
+                                     (concat "all of the options failed\n"
+                                             (mapconcat #'validate--indent-by-2 gather "\n"))))))
                ;; TODO: `restricted-sexp'
                (set (or (wtype 'list)
                         (let ((failed (list t)))
@@ -145,7 +148,10 @@ If they don't match, return an explanation."
         (let ((print-length 4)
               (print-level 2))
           (format "Looking for `%S' in `%S' failed because:\n%s"
-                  schema value r))))))
+                  schema value
+                  (if (string-match "\\`Looking" r)
+                      r
+                    (validate--indent-by-2 r))))))))
 
 
 ;;; Exposed API
