@@ -5,7 +5,7 @@
 ;; Author: Artur Malabarba <emacs@endlessparentheses.com>
 ;; Keywords: lisp
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
-;; Version: 0.4
+;; Version: 0.5
 
 ;;; Commentary:
 ;;
@@ -188,13 +188,23 @@ with `validate-value'. NOERROR is passed to `validate-value'."
        (lambda (val)
          (validate-value val (custom-variable-type symbol) 'noerror))))
 
-(defmacro validate-setq (symbol value)
+(defmacro validate-setq (&rest svs)
   "Like `setq', but throw an error if validation fails.
-VALUE is validated against SYMBOL's custom type."
-  `(if (boundp ',symbol)
-       (setq ,symbol (validate-value ,value (custom-variable-type ',symbol)))
-     (user-error "Trying to validate a variable that's not defined yet: `%s'.\nYou need to require the package before validating"
-                 ',symbol)))
+VALUE is validated against SYMBOL's custom type.
+
+\(fn [SYM VAL] ...)"
+  (let ((out))
+    (while svs
+      (let ((symbol (pop svs))
+            (value (if (not svs)
+                       (error "`validate-setq' takes an even number of arguments")
+                     (pop svs))))
+        (push `(if (boundp ',symbol)
+                   (setq ,symbol (validate-value ,value (custom-variable-type ',symbol)))
+                 (user-error "Trying to validate a variable that's not defined yet: `%s'.\nYou need to require the package before validating"
+                             ',symbol))
+              out)))
+    `(progn ,@(reverse out))))
 
 (provide 'validate)
 ;;; validate.el ends here
