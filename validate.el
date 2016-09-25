@@ -96,7 +96,7 @@ If they don't match, return an explanation."
                         ((wtype 'list))
                         (t (let ((subschema (car args)))
                              (seq-some (lambda (v) (validate--check v subschema)) value)))))
-               ((const function-item variable-item) (unless (eq value (car args))
+               ((const function-item variable-item) (unless (equal value (car args))
                                                       "not the expected value"))
                (file (cond ((wtype 'string))
                            ((file-exists-p value) nil)
