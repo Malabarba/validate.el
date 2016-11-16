@@ -165,7 +165,7 @@ indicate a failure."
   (let ((report (validate--check value schema)))
     (if report
         (unless noerror
-          (user-error report))
+          (user-error "%s" report))
       value)))
 
 ;;;###autoload
