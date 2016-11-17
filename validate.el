@@ -4,8 +4,8 @@
 
 ;; Author: Artur Malabarba <emacs@endlessparentheses.com>
 ;; Keywords: lisp
-;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
-;; Version: 1.0.1
+;; Package-Requires: ((emacs "24.1") (cl-lib "0.5") (seq "2.16"))
+;; Version: 1.0.2
 
 ;;; Commentary:
 ;;
