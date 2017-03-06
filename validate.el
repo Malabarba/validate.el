@@ -60,9 +60,10 @@
 
 (defun validate--check-list-contents (values schemas)
   "Check that all VALUES match all SCHEMAS."
-  (if (not (= (length values) (length schemas)))
-      "wrong number of elements"
-    (seq-find #'identity (seq-mapn #'validate--check values schemas))))
+  (when schemas
+    (if (not (= (length values) (length schemas)))
+        "wrong number of elements"
+      (seq-find #'identity (seq-mapn #'validate--check values schemas)))))
 
 (defun validate--indent-by-2 (x)
   (replace-regexp-in-string "^" "  " x))
