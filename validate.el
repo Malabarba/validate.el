@@ -5,7 +5,7 @@
 ;; Author: Artur Malabarba <emacs@endlessparentheses.com>
 ;; Keywords: lisp
 ;; Package-Requires: ((emacs "24.1") (cl-lib "0.5") (seq "2.16"))
-;; Version: 1.0.2
+;; Version: 1.0.4
 
 ;;; Commentary:
 ;;
@@ -60,9 +60,10 @@
 
 (defun validate--check-list-contents (values schemas)
   "Check that all VALUES match all SCHEMAS."
-  (if (not (= (length values) (length schemas)))
-      "wrong number of elements"
-    (seq-find #'identity (seq-mapn #'validate--check values schemas))))
+  (when schemas
+    (if (not (= (length values) (length schemas)))
+        "wrong number of elements"
+      (seq-find #'identity (seq-mapn #'validate--check values schemas)))))
 
 (defun validate--indent-by-2 (x)
   (replace-regexp-in-string "^" "  " x))
