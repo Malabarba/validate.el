@@ -147,7 +147,7 @@ If they don't match, return an explanation."
                             (concat "the following values don't match any of the options:\n  "
                                     (mapconcat (lambda (x) (format "%s" x)) value "\n  "))))))))))
       (when r
-        (let ((print-length 4)
+        (let ((print-length 5)
               (print-level 2))
           (format "Looking for `%S' in `%S' failed because:\n%s"
                   schema value
