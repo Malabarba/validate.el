@@ -76,84 +76,85 @@ If they don't match, return an explanation."
         (props nil))
     (while (and (keywordp (car args)) (cdr args))
       (setq props `(,(pop args) ,(pop args) ,@props)))
-    (setq args (or (plist-get props :args)
-                   args))
-    (let ((r
-           (cl-labels ((wtype           ;wrong-type
-                        (tt) (unless (funcall (intern (format "%sp" tt)) value)
-                               (format "not a %s" tt))))
-             ;; TODO: hook (top-level only).
-             (cl-case expected-type
-               ((sexp other) nil)
-               (variable (cond ((wtype 'symbol))
-                               ((not (boundp value)) "this symbol has no variable binding")))
-               ((integer number float string character symbol function boolean face)
-                (wtype expected-type))
-               (regexp (cond ((ignore-errors (string-match value "") t) nil)
-                             ((wtype 'string))
-                             (t "not a valid regexp")))
-               (repeat (cond
-                        ((or (not args) (cdr args)) (error "`repeat' needs exactly one argument"))
-                        ((wtype 'list))
-                        (t (let ((subschema (car args)))
-                             (seq-some (lambda (v) (validate--check v subschema)) value)))))
-               ((const function-item variable-item)
-                (unless (equal value (or (plist-get props :value) (car args)))
-                  "not the expected value"))
-               (file (cond ((wtype 'string))
-                           ((file-exists-p value) nil)
-                           ((plist-get props :must-match) "file does not exist")
-                           ((not (file-writable-p value)) "file is not accessible")))
-               (directory (cond ((wtype 'string))
-                                ((file-directory-p value) nil)
-                                ((file-exists-p value) "path is not a directory")
-                                ((not (file-writable-p value)) "directory is not accessible")))
-               (key-sequence (and (wtype 'string)
-                                  (wtype 'vector)))
-               ;; TODO: `coding-system', `color'
-               (coding-system (wtype 'symbol))
-               (color (wtype 'string))
-               (cons (or (wtype 'cons)
-                         (validate--check (car value) (car args))
-                         (validate--check (cdr value) (cadr args))))
-               ((list group) (or (wtype 'list)
-                                 (validate--check-list-contents value args)))
-               (vector (or (wtype 'vector)
-                           (validate--check-list-contents value args)))
-               (alist (let ((value-type (plist-get props :value-type))
-                            (key-type (plist-get props :key-type)))
-                        (cond ((not value-type) (error "`alist' needs a :value-type"))
-                              ((not key-type) (error "`alist' needs a :key-type"))
-                              ((wtype 'list))
-                              (t (validate--check value
-                                          `(repeat (cons ,key-type ,value-type)))))))
-               ;; TODO: `plist'
-               ((choice radio) (if (not (cdr args))
-                                   (error "`choice' needs at least one argument")
-                                 (let ((gather (mapcar (lambda (x) (validate--check value x)) args)))
-                                   (when (seq-every-p #'identity gather)
-                                     (concat "all of the options failed\n"
-                                             (mapconcat #'validate--indent-by-2 gather "\n"))))))
-               ;; TODO: `restricted-sexp'
-               (set (or (wtype 'list)
-                        (let ((failed (list t)))
-                          (dolist (schema args)
-                            (let ((elem (seq-find (lambda (x) (not (validate--check x schema)))
-                                                value
-                                                failed)))
-                              (unless (eq elem failed)
-                                (setq value (remove elem value)))))
-                          (when value
-                            (concat "the following values don't match any of the options:\n  "
-                                    (mapconcat (lambda (x) (format "%s" x)) value "\n  "))))))))))
-      (when r
-        (let ((print-length 5)
-              (print-level 2))
-          (format "Looking for `%S' in `%S' failed because:\n%s"
-                  schema value
-                  (if (string-match "\\`Looking" r)
-                      r
-                    (validate--indent-by-2 r))))))))
+    (setq args (or (plist-get props :args) args))
+    ;; :convert-widget is not supported.
+    (unless (plist-get props :convert-widget)
+      (let ((r
+             (cl-labels ((wtype           ;wrong-type
+                          (tt) (unless (funcall (intern (format "%sp" tt)) value)
+                                 (format "not a %s" tt))))
+               ;; TODO: hook (top-level only).
+               (cl-case expected-type
+                 ((sexp other) nil)
+                 (variable (cond ((wtype 'symbol))
+                                 ((not (boundp value)) "this symbol has no variable binding")))
+                 ((integer number float string character symbol function boolean face)
+                  (wtype expected-type))
+                 (regexp (cond ((ignore-errors (string-match value "") t) nil)
+                               ((wtype 'string))
+                               (t "not a valid regexp")))
+                 (repeat (cond
+                          ((or (not args) (cdr args)) (error "`repeat' needs exactly one argument"))
+                          ((wtype 'list))
+                          (t (let ((subschema (car args)))
+                               (seq-some (lambda (v) (validate--check v subschema)) value)))))
+                 ((const function-item variable-item)
+                  (unless (equal value (or (plist-get props :value) (car args)))
+                    "not the expected value"))
+                 (file (cond ((wtype 'string))
+                             ((file-exists-p value) nil)
+                             ((plist-get props :must-match) "file does not exist")
+                             ((not (file-writable-p value)) "file is not accessible")))
+                 (directory (cond ((wtype 'string))
+                                  ((file-directory-p value) nil)
+                                  ((file-exists-p value) "path is not a directory")
+                                  ((not (file-writable-p value)) "directory is not accessible")))
+                 (key-sequence (and (wtype 'string)
+                                    (wtype 'vector)))
+                 ;; TODO: `coding-system', `color'
+                 (coding-system (wtype 'symbol))
+                 (color (wtype 'string))
+                 (cons (or (wtype 'cons)
+                           (validate--check (car value) (car args))
+                           (validate--check (cdr value) (cadr args))))
+                 ((list group) (or (wtype 'list)
+                                   (validate--check-list-contents value args)))
+                 (vector (or (wtype 'vector)
+                             (validate--check-list-contents value args)))
+                 (alist (let ((value-type (plist-get props :value-type))
+                              (key-type (plist-get props :key-type)))
+                          (cond ((not value-type) (error "`alist' needs a :value-type"))
+                                ((not key-type) (error "`alist' needs a :key-type"))
+                                ((wtype 'list))
+                                (t (validate--check value
+                                            `(repeat (cons ,key-type ,value-type)))))))
+                 ;; TODO: `plist'
+                 ((choice radio) (if (not (cdr args))
+                                     (error "`choice' needs at least one argument")
+                                   (let ((gather (mapcar (lambda (x) (validate--check value x)) args)))
+                                     (when (seq-every-p #'identity gather)
+                                       (concat "all of the options failed\n"
+                                               (mapconcat #'validate--indent-by-2 gather "\n"))))))
+                 ;; TODO: `restricted-sexp'
+                 (set (or (wtype 'list)
+                          (let ((failed (list t)))
+                            (dolist (schema args)
+                              (let ((elem (seq-find (lambda (x) (not (validate--check x schema)))
+                                                  value
+                                                  failed)))
+                                (unless (eq elem failed)
+                                  (setq value (remove elem value)))))
+                            (when value
+                              (concat "the following values don't match any of the options:\n  "
+                                      (mapconcat (lambda (x) (format "%s" x)) value "\n  "))))))))))
+        (when r
+          (let ((print-length 5)
+                (print-level 2))
+            (format "Looking for `%S' in `%S' failed because:\n%s"
+                    schema value
+                    (if (string-match "\\`Looking" r)
+                        r
+                      (validate--indent-by-2 r)))))))))
 
 
 ;;; Exposed API
