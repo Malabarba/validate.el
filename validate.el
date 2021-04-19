@@ -189,7 +189,7 @@ with `validate-value'. NOERROR is passed to `validate-value'."
   "Mark SYMBOL as a safe local if its custom type is obeyed."
   (put symbol 'safe-local-variable
        (lambda (val)
-         (validate-value val (custom-variable-type symbol) 'noerror))))
+         (or (validate-value val (custom-variable-type symbol) nil) t)
 
 (defmacro validate-setq (&rest svs)
   "Like `setq', but throw an error if validation fails.
